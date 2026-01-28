@@ -83,7 +83,7 @@ const AppHeader: React.FC = () => {
             {/* Cross Icon */}
           </button>
 
-          <Link to="/" className="lg:hidden">
+          <Link to="/admin" className="lg:hidden">
             <img
               className="dark:hidden"
               src="./images/logo/logo.svg"
@@ -164,7 +164,7 @@ const AppHeader: React.FC = () => {
             {/* <!-- Notification Menu Area --> */}
           </div>
           {/* <!-- User Area --> */}
-          <UserDropdown />
+          {/* <UserDropdown /> */}
         </div>
       </div>
     </header>

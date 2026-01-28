@@ -39,17 +39,17 @@ const navItems: NavItem[] = [
   {
     icon: <PageIcon />,
     name: "Blog",
-    path: "/blog",
+    path: "/admin/blog",
   },
   {
     icon: <ListIcon />,
     name: "Category",
-    path: "/category",
+    path: "/admin/category",
   },
   {
     icon: <UserCircleIcon />,
     name: "User Profile",
-    path: "/profile",
+    path: "/admin/profile",
   },
   // {
   //   name: "Forms",
@@ -345,7 +345,7 @@ const AppSidebar: React.FC = () => {
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              <h2
+              <h3
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
                   !isExpanded && !isHovered
                     ? "lg:justify-center"
@@ -357,7 +357,7 @@ const AppSidebar: React.FC = () => {
                 ) : (
                   <HorizontaLDots className="size-6" />
                 )}
-              </h2>
+              </h3>
               {renderMenuItems(navItems, "main")}
             </div>
             {/* <div className="">

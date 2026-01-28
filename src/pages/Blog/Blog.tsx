@@ -1,169 +1,178 @@
-// pages/Blog/Blog.tsx
-import { FC, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { FC, useEffect, useState } from "react";
+import {
+  MdOutlineArrowBackIos,
+  MdOutlineArrowForwardIos,
+} from "react-icons/md";
+import { useSearchParams } from "react-router";
+import BlogCard from "../../components/card/blog/BlogCard";
 
-// Types (you can move these to a types file later)
-interface Tag {
-  id: string;
+const API_BASE = "http://localhost:5000";
+
+/* ===================== TYPES ===================== */
+
+interface Blog {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  status: "DRAFT" | "PUBLISHED";
+  categoryId: number;
+  createdAt: string;
+}
+
+interface Category {
+  id: number;
   name: string;
 }
 
-interface BlogPost {
-  id: string;
-  title: string;
-  excerpt: string;
-  featuredImage: string;
-  topic: string;
-  tags: Tag[];
-  slug: string;
+interface BlogApiResponse {
+  data: Blog[];
+  pagination: {
+    totalPage: number;
+  };
 }
 
+interface CategoryApiResponse {
+  data: Category[];
+}
+
+/* ===================== COMPONENT ===================== */
+
 const Blog: FC = () => {
-  const navigate = useNavigate();
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [totalPages, setTotalPages] = useState<number>(1);
 
-  // TODO: Replace with real data fetching (useEffect + API call)
-  const [posts] = useState<BlogPost[]>([
-    {
-      id: "1",
-      title: "Getting Started with Tailwind CSS",
-      excerpt:
-        "Learn how to set up Tailwind in your React project and start building beautiful UIs quickly...",
-      featuredImage:
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800",
-      topic: "Styling",
-      tags: [
-        { id: "t1", name: "tailwind" },
-        { id: "t2", name: "css" },
-        { id: "t3", name: "frontend" },
-      ],
-      slug: "getting-started-tailwind",
-    },
-    {
-      id: "2",
-      title: "React Router v6 Best Practices",
-      excerpt:
-        "How to structure routes, handle nested layouts, data loading and more in modern React apps...",
-      featuredImage:
-        "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800",
-      topic: "Routing",
-      tags: [
-        { id: "t4", name: "react-router" },
-        { id: "t5", name: "navigation" },
-      ],
-      slug: "react-router-v6-best-practices",
-    },
-    // Add more mock posts or fetch from API
-  ]);
+  const limit = 10;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page: number = Number(searchParams.get("page")) || 1;
 
-  const handleView = (slug: string) => {
-    // Assuming your public blog post lives at /blog/slug
-    window.open(`/blog/${slug}`, "_blank");
-  };
 
-  const handleEdit = (id: string) => {
-    navigate(`/blogedit/${id}`);
-  };
+  const handlePage = (direction: "prev" | "next"): void => {
+    if (direction === "prev" && page > 1) {
+      setSearchParams({ page: String(page - 1) });
+    }
 
-  const handleDelete = (id: string, title: string) => {
-    if (window.confirm(`Delete "${title}"? This cannot be undone.`)) {
-      // TODO: Call your delete API here
-      console.log("Deleting post:", id);
-      // After success: update local state or refetch
+    if (direction === "next" && page < totalPages) {
+      setSearchParams({ page: String(page + 1) });
     }
   };
 
-  return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
-      <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-3xl font-bold text-gray-900">Blog Posts</h1>
-        <Link
-          to="/blogedit/new" // or wherever your create-new-post route is
-          className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-        >
-          + New Post
-        </Link>
-      </div>
 
-      {posts.length === 0 ? (
-        <div className="py-16 text-center text-gray-500">
-          <p className="text-lg">No blog posts yet.</p>
-          <p>Click "New Post" to create your first article!</p>
+  useEffect(() => {
+    const fetchData = async (): Promise<void> => {
+      try {
+        const [blogsRes, catsRes] = await Promise.all([
+          fetch(`${API_BASE}/blog/published?page=${page}&limit=${limit}`),
+          fetch(`${API_BASE}/category`),
+        ]);
+
+        const blogsData: BlogApiResponse = await blogsRes.json();
+        const catsData: CategoryApiResponse = await catsRes.json();
+
+        const publishedBlogs = (blogsData.data || []).filter(
+          (blog) => blog.status !== "DRAFT",
+        );
+
+        setBlogs(publishedBlogs);
+        setCategories(catsData.data || []);
+        setTotalPages(blogsData.pagination.totalPage);
+      } catch (error) {
+        console.error("Failed to fetch data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [page]);
+
+
+  const getCategoryName = (categoryId: number): string => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.name : "Uncategorized";
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getExcerpt = (html: string): string => {
+    let text = html.replace(/<[^>]+>/g, "");
+    text = text.replace(/&nbsp;/g, " ");
+    text = text.replace(/&amp;/g, "&");
+    text = text.replace(/&lt;/g, "<");
+    text = text.replace(/&gt;/g, ">");
+    text = text.replace(/\s+/g, " ").trim();
+
+    return text.length > 150 ? `${text.slice(0, 150)}...` : text;
+  };
+
+
+  if (loading) {
+    return (
+      <section className="section">
+        <div className="container text-center max-w-4xl">
+          <p>Loading blogs...</p>
         </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {posts.map((post) => (
-            <div
-              key={post.id}
-              className="group flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md hover:border-gray-300"
-            >
-              {/* Image + Topic */}
-              <div className="relative h-48 overflow-hidden">
-                <img
-                  src={post.featuredImage}
-                  alt={post.title}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src =
-                      "https://images.unsplash.com/photo-1516321310762-3698944766f4?w=800&auto=format&fit=crop&q=60";
-                  }}
-                />
-                <span className="absolute right-3 top-3 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                  {post.topic}
-                </span>
-              </div>
+      </section>
+    );
+  }
 
-              {/* Content */}
-              <div className="flex flex-1 flex-col p-5">
-                <h2 className="mb-2 line-clamp-2 text-lg font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
-                  {post.title}
-                </h2>
+  return (
+    <section className="section">
+      <div className="container text-center max-w-4xl">
+        <div className="flex flex-col mb-8 gap-3">
+          <h1>Resources and insights</h1>
+          <p>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit. Laboriosam
+            laudantium similique cumque unde sunt quidem eius cum ipsa non
+            ratione aperiam veniam.
+          </p>
+        </div>
 
-                <p className="mb-4 line-clamp-3 flex-1 text-sm text-gray-600">
-                  {post.excerpt}
-                </p>
-
-                {/* Tags */}
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag.id}
-                      className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
-                    >
-                      {tag.name}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Actions */}
-                <div className="mt-auto flex gap-3">
-                  <button
-                    onClick={() => handleView(post.slug)}
-                    className="flex-1 rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
-                  >
-                    View
-                  </button>
-
-                  <button
-                    onClick={() => handleEdit(post.id)}
-                    className="flex-1 rounded-md border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition"
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    onClick={() => handleDelete(post.id, post.title)}
-                    className="flex-1 rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 transition"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 max-w-7xl mx-auto">
+          {blogs.map((blog) => (
+            <BlogCard
+              key={blog.id}
+              id={blog.id}
+              img={blog.image}
+              tag={getCategoryName(blog.categoryId)}
+              title={blog.title}
+              desc={getExcerpt(blog.description)}
+              date={formatDate(blog.createdAt)}
+            />
           ))}
         </div>
-      )}
-    </div>
+
+        <div className="flex justify-center items-center gap-4 mt-8">
+          <button
+            onClick={() => handlePage("prev")}
+            disabled={page === 1}
+            className="disabled:opacity-40"
+          >
+            <MdOutlineArrowBackIos />
+          </button>
+
+          <span>
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            onClick={() => handlePage("next")}
+            disabled={page === totalPages}
+            className="disabled:opacity-40"
+          >
+            <MdOutlineArrowForwardIos />
+          </button>
+        </div>
+      </div>
+    </section>
   );
 };
 

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import axios from "axios";
+import { useState, useEffect } from "react";
+import api from "../../api/axios";
 
 // Types
 interface Category {
@@ -11,81 +13,122 @@ interface Category {
 
 // Mock data — replace with real API later
 const mockCategories: Category[] = [
-  { id: '1', name: 'React', slug: 'react', description: 'All about React ecosystem', postCount: 12 },
-  { id: '2', name: 'Tailwind CSS', slug: 'tailwind-css', description: 'Styling with utility classes', postCount: 8 },
-  { id: '3', name: 'JavaScript', slug: 'javascript', description: 'Core language features & modern JS', postCount: 15 },
+  {
+    id: "1",
+    name: "React",
+    slug: "react",
+    description: "All about React ecosystem",
+    postCount: 12,
+  },
+  {
+    id: "2",
+    name: "Tailwind CSS",
+    slug: "tailwind-css",
+    description: "Styling with utility classes",
+    postCount: 8,
+  },
+  {
+    id: "3",
+    name: "JavaScript",
+    slug: "javascript",
+    description: "Core language features & modern JS",
+    postCount: 15,
+  },
 ];
 
 export default function Category() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: '', slug: '', description: '' });
+  const [form, setForm] = useState({ name: "", slug: "", description: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    // TODO: fetch real data
-    setTimeout(() => {
-      setCategories(mockCategories);
-      setLoading(false);
-    }, 600);
+    fetchCategories();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-
-    // Auto-generate slug from name when not editing
-    if (name === 'name' && !editingId) {
-      const slug = value
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
-      setForm((prev) => ({ ...prev, slug }));
+  const fetchCategories = async () => {
+    try {
+      const response = await api.get("/category");
+      setCategories(response.data.data);
+    } catch (error) {
+      console.error("Failed to fetch Categories", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value } = e.target;
+
+    setForm((prev) => {
+      if (name === "name" && !editingId) {
+        return {
+          ...prev,
+          name: value,
+          slug: value
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, ""),
+        };
+      }
+
+      return { ...prev, [name]: value };
+    });
+  };
+
   const resetForm = () => {
-    setForm({ name: '', slug: '', description: '' });
+    setForm({ name: "", slug: "", description: "" });
     setEditingId(null);
     setShowModal(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.slug.trim()) return;
 
-    if (editingId) {
-      // Update existing
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat.id === editingId ? { ...cat, ...form } : cat
-        )
-      );
-    } else {
-      // Create new
-      const newCat: Category = {
-        id: Date.now().toString(),
-        ...form,
-        postCount: 0,
-      };
-      setCategories((prev) => [...prev, newCat]);
-    }
+    try {
+      if (editingId) {
+        await api.put(`/category/${editingId}`, form);
+        setCategories((prev) =>
+          prev.map((cat) => (cat.id === editingId ? { ...cat, ...form } : cat)),
+        );
+      } else {
+        const res = await api.post("/category/create", form);
+        setCategories((prev) => [...prev, res.data.data]);
+      }
 
-    resetForm();
+      resetForm();
+    } catch (error) {
+      console.error("Failed to Save Category", error);
+    }
   };
 
   const handleEdit = (cat: Category) => {
-    setForm({ name: cat.name, slug: cat.slug, description: cat.description || '' });
+    setForm({
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description || "",
+    });
     setEditingId(cat.id);
     setShowModal(true);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (!window.confirm(`Delete category "${name}"? Blogs may lose this category.`)) return;
-
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    // TODO: API delete call
+  const handleDelete = async (id: string, name: string) => {
+    if (
+      !window.confirm(
+        `Delete category "${name}"? Blogs may lose this category.`,
+      )
+    )
+      return;
+    try {
+      await api.delete(`/category/${id}`);
+      setCategories((prev) => prev.filter((c) => c.id != id));
+    } catch (error) {
+      console.error("Failed to delete", error);
+    }
   };
 
   if (loading) {
@@ -128,19 +171,25 @@ export default function Category() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Name</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Slug</th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Name
+                </th>
+                <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">
+                  Slug
+                </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 hidden md:table-cell">
                   Description
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 hidden sm:table-cell">
                   Posts
                 </th>
-                <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Actions</th>
+                <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {categories.map((cat) => (
+              {categories.filter(Boolean).map((cat) => (
                 <tr key={cat.id} className="hover:bg-gray-50 transition">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {cat.name}
@@ -149,7 +198,9 @@ export default function Category() {
                     {cat.slug}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">
-                    {cat.description || <span className="text-gray-400">—</span>}
+                    {cat.description || (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell">
                     {cat.postCount ?? 0}
@@ -180,7 +231,7 @@ export default function Category() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl">
             <h2 className="mb-6 text-2xl font-bold text-gray-900">
-              {editingId ? 'Edit Category' : 'New Category'}
+              {editingId ? "Edit Category" : "New Category"}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -195,7 +246,6 @@ export default function Category() {
                   onChange={handleChange}
                   required
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g. React Hooks"
                 />
               </div>
 
@@ -210,12 +260,13 @@ export default function Category() {
                   onChange={handleChange}
                   required
                   className="w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-indigo-500 focus:ring-indigo-500 font-mono"
-                  placeholder="react-hooks"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
                 <textarea
                   name="description"
                   value={form.description}
@@ -238,7 +289,7 @@ export default function Category() {
                   type="submit"
                   className="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-700"
                 >
-                  {editingId ? 'Update' : 'Create'}
+                  {editingId ? "Update" : "Create"}
                 </button>
               </div>
             </form>

@@ -8,6 +8,12 @@ layer(base);
 @theme {
   --font-*: initial;
   --font-outfit: Outfit, sans-serif;
+  --color-primary: #1c1c1c;
+  --color-button: #1b1aff;
+  --color-card: #f5f8fe;
+
+  --font-antonio: "Antonio", sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -137,24 +143,29 @@ layer(base);
 
   --color-theme-purple-500: #7a5af8;
 
-  --shadow-theme-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+  --shadow-theme-md:
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1),
     0px 2px 4px -2px rgba(16, 24, 40, 0.06);
-  --shadow-theme-lg: 0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+  --shadow-theme-lg:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
     0px 4px 6px -2px rgba(16, 24, 40, 0.03);
-  --shadow-theme-sm: 0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+  --shadow-theme-sm:
+    0px 1px 3px 0px rgba(16, 24, 40, 0.1),
     0px 1px 2px 0px rgba(16, 24, 40, 0.06);
   --shadow-theme-xs: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
-  --shadow-theme-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08),
+  --shadow-theme-xl:
+    0px 20px 24px -4px rgba(16, 24, 40, 0.08),
     0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
   --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
-  --shadow-slider-navigation: 0px 1px 2px 0px rgba(16, 24, 40, 0.1),
-    0px 1px 3px 0px rgba(16, 24, 40, 0.1);
-  --shadow-tooltip: 0px 4px 6px -2px rgba(16, 24, 40, 0.05),
+  --shadow-slider-navigation:
+    0px 1px 2px 0px rgba(16, 24, 40, 0.1), 0px 1px 3px 0px rgba(16, 24, 40, 0.1);
+  --shadow-tooltip:
+    0px 4px 6px -2px rgba(16, 24, 40, 0.05),
     -8px 0px 20px 8px rgba(16, 24, 40, 0.05);
 
-  --drop-shadow-4xl: 0 35px 35px rgba(0, 0, 0, 0.25),
-    0 45px 65px rgba(0, 0, 0, 0.15);
+  --drop-shadow-4xl:
+    0 35px 35px rgba(0, 0, 0, 0.25), 0 45px 65px rgba(0, 0, 0, 0.15);
 
   --z-index-1: 1;
   --z-index-9: 9;
@@ -165,6 +176,30 @@ layer(base);
   --z-index-999999: 999999;
 }
 
+p {
+  font-family: var(--font-jakarta);
+  @apply text-gray-500 text-base md:text-sm font-jakarta tracking-wide;
+}
+
+h1 {
+  @apply text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
+}
+
+h2 {
+  @apply text-2xl sm:text-3xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
+}
+
+h3 {
+  @apply text-lg md:text-base font-bold text-primary md:text-lg font-jakarta;
+}
+
+.container {
+  @apply max-w-7xl mx-auto px-6 md:px-12 lg:px-18;
+}
+
+.section {
+  @apply my-14;
+}
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still
@@ -395,11 +430,13 @@ layer(base);
 }
 .flatpickr-calendar {
   @apply mt-2 !bg-white !rounded-xl !p-5 !border !border-gray-200 !shadow-theme-md dark:!border-white/5 !text-gray-500 dark:!bg-gray-dark dark:!text-gray-400 dark:!shadow-theme-xl 2xsm:!w-auto;
-  box-shadow: 0px 4px 8px -2px rgba(16, 24, 40, 0.1),
+  box-shadow:
+    0px 4px 8px -2px rgba(16, 24, 40, 0.1),
     0px 2px 4px -2px rgba(16, 24, 40, 0.06) !important;
 }
 .dark .flatpickr-calendar {
-  box-shadow: 0px 12px 16px -4px rgba(16, 24, 40, 0.08),
+  box-shadow:
+    0px 12px 16px -4px rgba(16, 24, 40, 0.08),
     0px 4px 6px -2px rgba(16, 24, 40, 0.03) !important;
 }
 
@@ -482,7 +519,9 @@ span.flatpickr-weekday,
   @apply !bg-none;
 }
 .flatpickr-day.inRange {
-  box-shadow: -5px 0 0 #f9fafb, 5px 0 0 #f9fafb !important;
+  box-shadow:
+    -5px 0 0 #f9fafb,
+    5px 0 0 #f9fafb !important;
   @apply dark:!shadow-datepicker;
 }
 .flatpickr-day.inRange,
@@ -764,7 +803,8 @@ span.flatpickr-weekday,
 
 .task {
   border-radius: 0.75rem;
-  box-shadow: 0px 1px 3px 0px rgba(16, 24, 40, 0.1),
+  box-shadow:
+    0px 1px 3px 0px rgba(16, 24, 40, 0.1),
     0px 1px 2px 0px rgba(16, 24, 40, 0.06);
   opacity: 0.8;
   cursor: grabbing; /* Changes the cursor to indicate dragging */
