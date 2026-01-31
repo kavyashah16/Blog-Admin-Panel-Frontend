@@ -2,6 +2,7 @@ import { useState, useEffect, ChangeEvent, FormEvent, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import { useAuth } from "../../context/AuthContext";
 
 // Types
 interface Category {
@@ -23,6 +24,9 @@ const API_BASE = "http://localhost:5000";
 
 export default function BlogEdit() {
   const { id } = useParams<{ id: string }>();
+
+  const { token } = useAuth();
+
   const navigate = useNavigate();
   const isNew = id === "new";
 
@@ -43,13 +47,6 @@ export default function BlogEdit() {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
-    const token =
-      localStorage.getItem("token") || sessionStorage.getItem("token");
-    if (!token) {
-      navigate("/signin");
-      return;
-    }
-
     const fetchCategories = async () => {
       try {
         const res = await fetch(`${API_BASE}/category`, {
@@ -57,7 +54,7 @@ export default function BlogEdit() {
         });
         if (!res.ok) {
           if (res.status === 401) {
-            navigate("/signin");
+            navigate("/admin/signin");
           } else {
             throw new Error("Failed to fetch categories");
           }
@@ -153,7 +150,7 @@ export default function BlogEdit() {
     const token =
       localStorage.getItem("token") || sessionStorage.getItem("token");
     if (!token) {
-      navigate("/signin");
+      navigate("/admin/signin");
       return;
     }
 

@@ -7,41 +7,67 @@ import {
 } from "react";
 import { useNavigate, useLocation } from "react-router";
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (token: string, remember: boolean) => void;
+  user: User | null;
+  token: string | null;
+  login: (token: string, user: User) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem("token");
-  });
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // useEffect(() => {
-  //   const token = localStorage.getItem("token");
-  //   setIsAuthenticated(!!token);
-  // }, []);
 
-  const login = (token: string, remember: boolean) => {
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [token, setToken] = useState<string | null>(() => {
+    const stored = localStorage.getItem("token");
+    return stored || null;
+  });
 
+  const isAuthenticated = !!user;
+
+  useEffect(() => {
+    if (!token) {
+      navigate("/admin/signin");
+      return;
+    }
+  }, [token]);
+
+  const login = (token: string, user: User) => {
     localStorage.setItem("token", token);
-    setIsAuthenticated(true);
-    navigate(location.state?.from || "/");
+    localStorage.setItem("user", JSON.stringify(user));
+
+    setUser(user);
+    setToken(token);
+    navigate(location.state?.from || "/admin");
   };
 
   const logout = () => {
     localStorage.removeItem("token");
-    setIsAuthenticated(false);
-    navigate("/signin");
+    localStorage.removeItem("user");
+
+    setUser(null);
+    setToken(null);
+    navigate("/admin/signin");
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, user, token, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

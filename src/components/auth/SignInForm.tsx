@@ -6,8 +6,8 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import axios from "axios"; 
-import { useAuth } from "../../context/AuthContext"; 
 import api from "../../api/axios";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -43,7 +43,7 @@ export default function SignInForm() {
       });
 
       if (response.data.success) {
-        login(response.data.token, isChecked); // Use context login
+        login(response.data.token, response.data.data); 
       } else {
         setError(response.data.message);
       }
@@ -131,7 +131,7 @@ export default function SignInForm() {
               <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                 Don&apos;t have an account? {""}
                 <Link
-                  to="/signup"
+                  to="/admin/signup"
                   className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                 >
                   Sign Up

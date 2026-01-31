@@ -46,7 +46,7 @@ export default function SignUpForm() {
       });
 
       if (response.data.success) {
-        login(response.data.token, isChecked);
+        login(response.data.token, response.data.data);
       } else {
         setError(response.data.message);
       }
@@ -74,7 +74,6 @@ export default function SignUpForm() {
               {error && <p className="text-error-500 mb-4">{error}</p>}
               <div className="space-y-5">
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* <!-- First Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
                       First Name<span className="text-error-500">*</span>
@@ -88,7 +87,6 @@ export default function SignUpForm() {
                       onChange={handleChange}
                     />
                   </div>
-                  {/* <!-- Last Name --> */}
                   <div className="sm:col-span-1">
                     <Label>
                       Last Name<span className="text-error-500">*</span>
@@ -103,7 +101,6 @@ export default function SignUpForm() {
                     />
                   </div>
                 </div>
-                {/* <!-- Email --> */}
                 <div>
                   <Label>
                     Email<span className="text-error-500">*</span>
@@ -117,7 +114,6 @@ export default function SignUpForm() {
                     onChange={handleChange}
                   />
                 </div>
-                {/* <!-- Password --> */}
                 <div>
                   <Label>
                     Password<span className="text-error-500">*</span>
@@ -176,7 +172,7 @@ export default function SignUpForm() {
               <p className="text-sm font-normal text-center text-gray-700 dark:text-gray-400 sm:text-start">
                 Already have an account? {""}
                 <Link
-                  to="/signin"
+                  to="/admin/signin"
                   className="text-brand-500 hover:text-brand-600 dark:text-brand-400"
                 >
                   Sign In

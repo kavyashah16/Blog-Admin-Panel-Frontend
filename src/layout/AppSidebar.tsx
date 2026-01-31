@@ -17,6 +17,7 @@ import {
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import SidebarWidget from "./SidebarWidget";
+import { useAuth } from "../context/AuthContext";
 
 type NavItem = {
   name: string;
@@ -44,7 +45,15 @@ const navItems: NavItem[] = [
   {
     icon: <ListIcon />,
     name: "Category",
-    path: "/admin/category",
+    subItems: [
+      { name: "Blog Category", path: "/admin/category", pro: false },
+      { name: "Product Category", path: "/admin/pcategory", pro: false },
+    ],
+  },
+  {
+    name: "Attribute",
+    icon: <ListIcon />,
+    path: "/admin/attribute",
   },
   {
     icon: <UserCircleIcon />,
@@ -52,9 +61,9 @@ const navItems: NavItem[] = [
     path: "/admin/profile",
   },
   // {
-  //   name: "Forms",
-  //   icon: <ListIcon />,
-  //   subItems: [{ name: "Form Elements", path: "/form-elements", pro: false }],
+  //   icon: <UserCircleIcon />,
+  //   name: "Create User",
+  //   path: "/admin/createuser",
   // },
   // {
   //   name: "Tables",
@@ -96,8 +105,8 @@ const othersItems: NavItem[] = [
   //   icon: <PlugInIcon />,
   //   name: "Authentication",
   //   subItems: [
-  //     { name: "Sign In", path: "/signin", pro: false },
-  //     { name: "Sign Up", path: "/signup", pro: false },
+  //     { name: "Sign In", path: "/admin/signin", pro: false },
+  //     { name: "Sign Up", path: "/admin/signup", pro: false },
   //   ],
   // },
 ];
@@ -105,6 +114,7 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -379,8 +389,9 @@ const AppSidebar: React.FC = () => {
           </div>
         </nav>
         <Link
-          to="/signin"
+          to="/admin/signin"
           className="flex items-center gap-3 px-3 py-2 mt-3 font-medium text-gray-700 rounded-lg group text-theme-sm hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+          onClick={logout}
         >
           <svg
             className="fill-gray-500 group-hover:fill-gray-700 dark:group-hover:fill-gray-300"

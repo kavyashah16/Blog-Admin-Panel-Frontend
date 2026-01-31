@@ -38,6 +38,10 @@ import AdminBlog from "./pages/AdminBlog/AdminBlog";
 import Blog from "./pages/Blog/Blog";
 import BlogEdit from "./components/blog/AdminBlogEdit";
 import BlogDetail from "./pages/BlogDetail/Blogdetail";
+import CreateUser from "./pages/CreateUser/CreateUser";
+import UserEdit from "./components/auth/UserEdit";
+import PCategoryManager from "./pages/PCategory/PCategory";
+import AttributeManager from "./pages/Attribute/Attribute";
 
 function PrivateRoute() {
   const { isAuthenticated } = useAuth();
@@ -75,7 +79,11 @@ export default function App() {
               <Route path="/admin/blog" element={<AdminBlog />} />
               <Route path="/admin/blogedit/:id" element={<EditBlog />} />
               <Route path="/admin/category" element={<Category />} />
-              <Route path="/admin/profile" element={<UserProfiles/>}/>
+              <Route path="/admin/profile" element={<UserProfiles />} />
+              <Route path="/admin/createuser" element={<CreateUser />} />
+              <Route path="/admin/edituser/:id" element={<UserEdit />} />
+              <Route path="/admin/pcategory" element={<PCategoryManager />} />
+              <Route path="/admin/attribute" element={<AttributeManager />} />
             </Route>
           </Route>
 

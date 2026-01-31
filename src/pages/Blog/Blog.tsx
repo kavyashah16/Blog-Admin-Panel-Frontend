@@ -5,10 +5,9 @@ import {
 } from "react-icons/md";
 import { useSearchParams } from "react-router";
 import BlogCard from "../../components/card/blog/BlogCard";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = "http://localhost:5000";
-
-/* ===================== TYPES ===================== */
 
 interface Blog {
   id: number;
@@ -36,8 +35,6 @@ interface CategoryApiResponse {
   data: Category[];
 }
 
-/* ===================== COMPONENT ===================== */
-
 const Blog: FC = () => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -47,7 +44,7 @@ const Blog: FC = () => {
   const limit = 10;
   const [searchParams, setSearchParams] = useSearchParams();
   const page: number = Number(searchParams.get("page")) || 1;
-
+  const { token } = useAuth();
 
   const handlePage = (direction: "prev" | "next"): void => {
     if (direction === "prev" && page > 1) {
@@ -59,13 +56,16 @@ const Blog: FC = () => {
     }
   };
 
-
   useEffect(() => {
     const fetchData = async (): Promise<void> => {
       try {
         const [blogsRes, catsRes] = await Promise.all([
-          fetch(`${API_BASE}/blog/published?page=${page}&limit=${limit}`),
-          fetch(`${API_BASE}/category`),
+          fetch(`${API_BASE}/blog/published?page=${page}&limit=${limit}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE}/category`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         const blogsData: BlogApiResponse = await blogsRes.json();
@@ -87,7 +87,6 @@ const Blog: FC = () => {
 
     fetchData();
   }, [page]);
-
 
   const getCategoryName = (categoryId: number): string => {
     const category = categories.find((cat) => cat.id === categoryId);
@@ -112,7 +111,6 @@ const Blog: FC = () => {
 
     return text.length > 150 ? `${text.slice(0, 150)}...` : text;
   };
-
 
   if (loading) {
     return (
