@@ -182,15 +182,15 @@ p {
 }
 
 h1 {
-  @apply text-3xl sm:text-4xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
+  @apply text-xl sm:text-2xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
 }
 
 h2 {
-  @apply text-2xl sm:text-3xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
+  @apply text-lg sm:text-xl lg:text-5xl font-semibold leading-tight tracking-wide text-primary font-jakarta;
 }
 
 h3 {
-  @apply text-lg md:text-base font-bold text-primary md:text-lg font-jakarta;
+  @apply text-base md:text-lg font-bold text-primary md:text-lg font-jakarta;
 }
 
 .container {
@@ -200,6 +200,21 @@ h3 {
 .section {
   @apply my-14;
 }
+
+.product-description ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+}
+
+.product-description ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+}
+
+.product-description li {
+  margin-bottom: 0.25rem;
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still

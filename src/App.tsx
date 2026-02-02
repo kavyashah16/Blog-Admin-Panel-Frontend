@@ -36,12 +36,19 @@ import Footer from "./components/footer/footer";
 import Contact from "./pages/Contact/Contact";
 import AdminBlog from "./pages/AdminBlog/AdminBlog";
 import Blog from "./pages/Blog/Blog";
-import BlogEdit from "./components/blog/AdminBlogEdit";
 import BlogDetail from "./pages/BlogDetail/Blogdetail";
 import CreateUser from "./pages/CreateUser/CreateUser";
 import UserEdit from "./components/auth/UserEdit";
-import PCategoryManager from "./pages/PCategory/PCategory";
+import PCategoryManager from "./pages/AdminPCategory/PCategory";
 import AttributeManager from "./pages/Attribute/Attribute";
+import ProductListPage from "./pages/AdminProduct/AdminProduct";
+import ProductEditPage from "./pages/AdminProduct/AdminProductEdit";
+import Product from "./pages/Product/Product";
+import ProductDetail from "./pages/Product/ProductDetail";
+import CartPage from "./pages/Cart/Cart";
+import CheckoutPage from "./pages/Checkout/Checkout";
+import PaymentSuccess from "./pages/PaymentStatus/Success";
+import OrdersPage from "./pages/AdminOrder/orderdetail";
 
 function PrivateRoute() {
   const { isAuthenticated } = useAuth();
@@ -58,7 +65,7 @@ function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main>
+      <main className="flex-1">
         <Outlet />
       </main>
       <Footer />
@@ -84,6 +91,16 @@ export default function App() {
               <Route path="/admin/edituser/:id" element={<UserEdit />} />
               <Route path="/admin/pcategory" element={<PCategoryManager />} />
               <Route path="/admin/attribute" element={<AttributeManager />} />
+              <Route path="/admin/product" element={<ProductListPage />} />
+              <Route path="/admin/order-detail" element={<OrdersPage />} />
+              <Route
+                path="/admin/product/create"
+                element={<ProductEditPage />}
+              />
+              <Route
+                path="/admin/product/edit/:id"
+                element={<ProductEditPage />}
+              />
             </Route>
           </Route>
 
@@ -97,6 +114,11 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:id" element={<BlogDetail />} />
+            <Route path="/product" element={<Product />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/payment-success" element={<PaymentSuccess />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

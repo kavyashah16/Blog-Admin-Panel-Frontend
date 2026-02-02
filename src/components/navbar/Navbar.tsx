@@ -30,13 +30,18 @@ const Navbar: FC = () => {
               Service
             </Link>
           </li>
+          <li>
+            <Link to="/product" className="hover:text-button">
+              Product
+            </Link>
+          </li>
         </ul>
 
         <Link
-          to="/contact"
+          to="/cart"
           className="hidden md:flex bg-button text-white px-4 py-2.5 rounded-md font-jakarta"
         >
-          Contact Us
+          Cart
         </Link>
 
         <button

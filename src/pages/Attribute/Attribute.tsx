@@ -1,59 +1,59 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import api from "../../api/axios";
 
-// Define the interface for Category (mocked)
 interface Category {
   id: number;
   type: string;
 }
 
-// Define the interface for Attribute
 interface Attribute {
   id: number;
   value: string;
   categoryId: number;
-  variantCount: number; // Mocked for frontend
+  // variantCount: number;  Mocked for frontend
 }
 
-// Mock data for categories
-const mockedCategories: Category[] = [
-  { id: 1, type: "Electronics" },
-  { id: 2, type: "Clothing" },
-  { id: 3, type: "Books" },
-];
-
-// Mock data for attributes (since no backend integration)
-const initialAttributes: Attribute[] = [
-  { id: 1, value: "Color", categoryId: 2, variantCount: 5 },
-  { id: 2, value: "Size", categoryId: 2, variantCount: 10 },
-  { id: 3, value: "Brand", categoryId: 1, variantCount: 3 },
-];
-
 const AttributeManager: React.FC = () => {
-  const [attributes, setAttributes] = useState<Attribute[]>(initialAttributes);
+  const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [currentAttribute, setCurrentAttribute] = useState<Partial<Attribute>>({
-    value: "",
-    categoryId: undefined,
-  });
-  const [nextId, setNextId] = useState(4); // For mocking new IDs
+  const [currentAttribute, setCurrentAttribute] = useState<Partial<Attribute>>(
+    {},
+  );
+
+  const fetchAttributes = async () => {
+    try {
+      const res = await api.get("/admin/attribute");
+      setAttributes(res.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchPCategory = async () => {
+    try {
+      const res = await api.get("/admin/category");
+      setCategories(res.data.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    fetchAttributes();
+    fetchPCategory();
+  }, []);
 
   const openModal = (mode: "create" | "edit", attribute?: Attribute) => {
     setModalMode(mode);
-    setCurrentAttribute(
-      attribute
-        ? {
-            id: attribute.id,
-            value: attribute.value,
-            categoryId: attribute.categoryId,
-          }
-        : { value: "", categoryId: undefined },
-    );
+    setCurrentAttribute(attribute ?? {});
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setCurrentAttribute({});
   };
 
   const handleInputChange = (
@@ -66,59 +66,40 @@ const AttributeManager: React.FC = () => {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!currentAttribute.value || !currentAttribute.categoryId) {
       alert("Value and Category are required");
       return;
     }
 
-    const attrValue = currentAttribute.value.trim();
-    const attrCategoryId = currentAttribute.categoryId;
+    try {
+      if (modalMode === "create") {
+        await api.post("/admin/attribute/create", {
+          value: currentAttribute.value,
+          categoryId: currentAttribute.categoryId,
+        });
+      } else {
+        await api.put(`/admin/attribute/${currentAttribute.id}`, {
+          value: currentAttribute.value,
+          categoryId: currentAttribute.categoryId,
+        });
+      }
 
-    if (modalMode === "create") {
-      if (
-        attributes.some(
-          (a) => a.value === attrValue && a.categoryId === attrCategoryId,
-        )
-      ) {
-        alert("Attribute already exists for this category");
-        return;
-      }
-      const newAttribute: Attribute = {
-        id: nextId,
-        value: attrValue,
-        categoryId: attrCategoryId,
-        variantCount: 0, // Start with 0 variants
-      };
-      setAttributes([...attributes, newAttribute]);
-      setNextId(nextId + 1);
-    } else if (modalMode === "edit" && currentAttribute.id) {
-      if (
-        attributes.some(
-          (a) =>
-            a.id !== currentAttribute.id &&
-            a.value === attrValue &&
-            a.categoryId === attrCategoryId,
-        )
-      ) {
-        alert("Attribute already exists for this category");
-        return;
-      }
-      setAttributes(
-        attributes.map((attr) =>
-          attr.id === currentAttribute.id
-            ? { ...attr, value: attrValue, categoryId: attrCategoryId }
-            : attr,
-        ),
-      );
+      fetchAttributes();
+      closeModal();
+    } catch (error: any) {
+      alert(error.response?.data?.message || "Something went wrong");
     }
-
-    closeModal();
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to delete this attribute?")) {
-      setAttributes(attributes.filter((attr) => attr.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this attribute?")) return;
+
+    try {
+      await api.delete(`/admin/attribute/${id}`);
+      fetchAttributes();
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -140,23 +121,20 @@ const AttributeManager: React.FC = () => {
             <th className="py-2 px-4 border-b text-left">ID</th>
             <th className="py-2 px-4 border-b text-left">Value</th>
             <th className="py-2 px-4 border-b text-left">Category</th>
-            <th className="py-2 px-4 border-b text-left">Number of Variants</th>
+            {/* <th className="py-2 px-4 border-b text-left">Number of Variants</th> */}
             <th className="py-2 px-4 border-b text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
-          {attributes.map((attribute, index) => (
-            <tr
-              key={attribute.id}
-              className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
-            >
+          {attributes.map((attribute) => (
+            <tr key={attribute.id}>
               <td className="py-2 px-4 border-b">{attribute.id}</td>
               <td className="py-2 px-4 border-b">{attribute.value}</td>
               <td className="py-2 px-4 border-b">
-                {mockedCategories.find((c) => c.id === attribute.categoryId)
+                {categories.find((c) => c.id === attribute.categoryId)
                   ?.type || "Unknown"}
               </td>
-              <td className="py-2 px-4 border-b">{attribute.variantCount}</td>
+              {/* <td className="py-2 px-4 border-b">{attribute.variantCount}</td> */}
               <td className="py-2 px-4 border-b">
                 <button
                   onClick={() => openModal("edit", attribute)}
@@ -202,7 +180,7 @@ const AttributeManager: React.FC = () => {
                 className="w-full border border-gray-300 px-3 py-2 rounded"
               >
                 <option value="">Select Category</option>
-                {mockedCategories.map((category) => (
+                {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.type}
                   </option>
