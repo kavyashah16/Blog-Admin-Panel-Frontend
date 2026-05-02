@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router";
 import api from "../../api/axios";
 
-/* ================= INTERFACES ================= */
-
 interface Variant {
   attributeId: number;
   value: string;

@@ -49,6 +49,7 @@ import CartPage from "./pages/Cart/Cart";
 import CheckoutPage from "./pages/Checkout/Checkout";
 import PaymentSuccess from "./pages/PaymentStatus/Success";
 import OrdersPage from "./pages/AdminOrder/orderdetail";
+import ProductCreatePage from "./pages/AdminProduct/AdminProductCreate";
 
 function PrivateRoute() {
   const { isAuthenticated } = useAuth();
@@ -93,6 +94,10 @@ export default function App() {
               <Route path="/admin/attribute" element={<AttributeManager />} />
               <Route path="/admin/product" element={<ProductListPage />} />
               <Route path="/admin/order-detail" element={<OrdersPage />} />
+              <Route
+                path="/admin/new-product"
+                element={<ProductCreatePage />}
+              />
               <Route
                 path="/admin/product/create"
                 element={<ProductEditPage />}

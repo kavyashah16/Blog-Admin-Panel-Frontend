@@ -4,13 +4,13 @@ import { Link, useNavigate } from "react-router";
 interface CartItem {
   productId: number;
   productName: string;
-  productImage: string; // Assuming image is stored in cart; if not, fetch it using productId
-  variant: {
+  productImage: string;
+  variants: {
     attributeId: number;
     value: string;
     price: number;
     status: number;
-  };
+  }[];
   quantity: number;
 }
 
@@ -44,12 +44,12 @@ const CartPage: React.FC = () => {
     updateCart(updatedCart);
   };
 
-  const getTotal = () => {
-    return cartItems.reduce(
-      (total, item) => total + item.variant.price * item.quantity,
+  const getTotal = () =>
+    cartItems.reduce(
+      (total, item) =>
+        total + item.variants.reduce((s, v) => s + v.price, 0) * item.quantity,
       0,
     );
-  };
 
   if (cartItems.length === 0) {
     return (
@@ -74,59 +74,66 @@ const CartPage: React.FC = () => {
     <div className="container mx-auto p-4">
       <span className="text-3xl font-bold mb-8 text-center">Shopping Cart</span>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left side: Product details */}
         <div className="md:col-span-2 space-y-6">
-          {cartItems.map((item, index) => (
-            <div
-              key={index}
-              className="bg-white border border-gray-200 rounded-lg shadow-md p-4 flex items-start gap-4"
-            >
-              <img
-                src={item.productImage}
-                alt={item.productName}
-                className="w-24 h-24 object-cover rounded-md"
-              />
-              <div className="flex-grow">
-                <span className="text-xl font-semibold text-gray-900">
-                  {item.productName}
-                </span>
-                <p className="text-gray-600">Variant: {item.variant.value}</p>
-                <p className="text-lg font-bold text-teal-600">
-                  ₹{item.variant.price.toLocaleString()}
-                </p>
-                <div className="flex items-center gap-4 mt-2">
-                  <span className="text-gray-700">Quantity:</span>
-                  <div className="flex items-center border border-gray-300 rounded overflow-hidden">
-                    <button
-                      onClick={() => handleQuantityChange(index, -1)}
-                      className="px-3 py-1 hover:bg-gray-100 transition"
-                    >
-                      −
-                    </button>
-                    <span className="px-4 py-1 bg-gray-50">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => handleQuantityChange(index, 1)}
-                      className="px-3 py-1 hover:bg-gray-100 transition"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Subtotal: ₹
-                  {(item.variant.price * item.quantity).toLocaleString()}
-                </p>
-              </div>
-              <button
-                onClick={() => handleRemoveItem(index)}
-                className="text-red-500 hover:text-red-700 transition"
+          {cartItems.map((item, index) => {
+            const variantPrice = item.variants.reduce(
+              (sum, v) => sum + v.price,
+              0,
+            );
+            return (
+              <div
+                key={index}
+                className="bg-white border border-gray-200 rounded-lg shadow-md p-4 flex items-start gap-4"
               >
-                × Remove
-              </button>
-            </div>
-          ))}
+                <img
+                  src={item.productImage}
+                  alt={item.productName}
+                  className="w-24 h-24 object-cover rounded-md"
+                />
+                <div className="flex-grow">
+                  <span className="text-xl font-semibold text-gray-900">
+                    {item.productName}
+                  </span>
+                  <p className="text-gray-600">
+                    Variants: {item.variants.map((v) => v.value).join(", ")}
+                  </p>
+
+                  <p className="text-lg font-bold text-teal-600">
+                    ₹{variantPrice.toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="text-gray-700">Quantity:</span>
+                    <div className="flex items-center border border-gray-300 rounded overflow-hidden">
+                      <button
+                        onClick={() => handleQuantityChange(index, -1)}
+                        className="px-3 py-1 hover:bg-gray-100 transition"
+                      >
+                        −
+                      </button>
+                      <span className="px-4 py-1 bg-gray-50">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => handleQuantityChange(index, 1)}
+                        className="px-3 py-1 hover:bg-gray-100 transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Subtotal: ₹{(variantPrice * item.quantity).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleRemoveItem(index)}
+                  className="text-red-500 hover:text-red-700 transition"
+                >
+                  × Remove
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         {/* Right side: Pricing details */}
@@ -148,7 +155,8 @@ const CartPage: React.FC = () => {
               <span>₹{getTotal().toLocaleString()}</span>
             </div>
           </div>
-          <Link to={"/checkout"}
+          <Link
+            to={"/checkout"}
             className="w-full bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition font-semibold"
           >
             Checkout

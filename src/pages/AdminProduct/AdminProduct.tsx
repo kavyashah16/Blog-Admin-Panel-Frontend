@@ -32,7 +32,6 @@ const ProductListPage: React.FC = () => {
   const navigate = useNavigate();
   const limit = 10;
 
-
   const fetchProducts = async (page: number) => {
     try {
       const res = await api.get("/admin/product", {
@@ -50,7 +49,6 @@ const ProductListPage: React.FC = () => {
     fetchProducts(currentPage);
   }, [currentPage]);
 
-
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
@@ -66,13 +64,18 @@ const ProductListPage: React.FC = () => {
     navigate(`/products/details/${id}`);
   };
 
+  const htmlToText = (html: string) => {
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div.textContent || div.innerText || "";
+  };
 
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between mb-4">
         <span className="text-2xl font-bold">Product List</span>
         <Link
-          to="/admin/product/edit/create"
+          to="/admin/new-product"
           className="bg-blue-500 text-white px-4 py-2 rounded"
         >
           + New Product
@@ -107,12 +110,11 @@ const ProductListPage: React.FC = () => {
                 />
               </td>
               <td className="p-2 border">
-                {product.description.slice(0, 50)}...
+                {htmlToText(product.description).slice(0, 50)}...
               </td>
+
               <td className="p-2 border">{product.category?.type}</td>
-              <td className="p-2 border">
-                {product.productAttributes.length}
-              </td>
+              <td className="p-2 border">{product.productAttributes.length}</td>
               <td className="p-2 border">
                 <Link
                   to={`/admin/product/edit/${product.id}`}
@@ -150,9 +152,7 @@ const ProductListPage: React.FC = () => {
           Page {currentPage} of {totalPages}
         </span>
         <button
-          onClick={() =>
-            setCurrentPage((p) => Math.min(p + 1, totalPages))
-          }
+          onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
           disabled={currentPage === totalPages}
           className="px-4 py-2 bg-gray-300 rounded ml-2 disabled:opacity-50"
         >

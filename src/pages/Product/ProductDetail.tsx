@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import api from "../../api/axios";
+import { useMemo } from "react";
+
+interface Attribute {
+  id: number;
+  value: string;
+}
 
 interface Variant {
   id: number;
@@ -8,6 +14,7 @@ interface Variant {
   value: string;
   price: number;
   status: number;
+  attribute: Attribute;
 }
 
 interface Product {
@@ -18,22 +25,64 @@ interface Product {
   productAttributes: Variant[];
 }
 
+interface AttributeValue {
+  id: number;
+  value: string;
+  price: number;
+  status: number;
+}
+
+interface GroupAttribute {
+  attributeId: number;
+  attributeName: string;
+  values: AttributeValue[];
+}
+
+const groupAttributes = (productAttributes: Variant[]): GroupAttribute[] => {
+  const map = new Map<number, GroupAttribute>();
+
+  productAttributes.forEach((item) => {
+    if (!item.attributeId || !item.attribute) return;
+
+    const attrId = item.attributeId;
+
+    if (!map.has(attrId)) {
+      map.set(attrId, {
+        attributeId: attrId,
+        attributeName: item.attribute.value,
+        values: [],
+      });
+    }
+
+    map.get(attrId)!.values.push({
+      id: item.id,
+      value: item.value,
+      price: item.price,
+      status: item.status,
+    });
+  });
+
+  return Array.from(map.values());
+};
+
 const ProductDetail: React.FC = () => {
   const { id } = useParams();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = useState<{
+    [attributeId: number]: AttributeValue;
+  }>({});
+
   const [quantity, setQuantity] = useState(1);
+
+  const groupedAttributes = useMemo(() => {
+    if (!product?.productAttributes) return [];
+    return groupAttributes(product.productAttributes);
+  }, [product]);
 
   useEffect(() => {
     fetchProduct();
   }, []);
-
-  useEffect(() => {
-    if (product && product.productAttributes.length > 0 && !selectedVariant) {
-      setSelectedVariant(product.productAttributes[0]);
-    }
-  }, [product]);
 
   const fetchProduct = async () => {
     try {
@@ -44,8 +93,13 @@ const ProductDetail: React.FC = () => {
     }
   };
 
+  const totalPrice = Object.values(selectedAttributes).reduce(
+    (sum, v) => sum + v.price,
+    0,
+  );
+
   const addToCart = () => {
-    if (!product || !selectedVariant) {
+    if (!product || Object.keys(selectedAttributes).length === 0) {
       alert("Please select a variant");
       return;
     }
@@ -54,13 +108,7 @@ const ProductDetail: React.FC = () => {
       productId: product.id,
       productName: product.name,
       productImage: product.image,
-      variant: {
-        id: selectedVariant.id,
-        attributeId: selectedVariant.attributeId,
-        value: selectedVariant.value,
-        price: selectedVariant.price,
-        status: selectedVariant.status,
-      },
+      variants: Object.values(selectedAttributes),
       quantity,
     };
 
@@ -68,7 +116,9 @@ const ProductDetail: React.FC = () => {
 
     const existingIndex = existingCart.findIndex(
       (item: any) =>
-        item.productId === product.id && item.variant.id === selectedVariant.id,
+        item.productId === product.id &&
+        JSON.stringify(item.variants) ===
+          JSON.stringify(Object.values(selectedAttributes)),
     );
 
     if (existingIndex !== -1) {
@@ -78,6 +128,10 @@ const ProductDetail: React.FC = () => {
     }
 
     localStorage.setItem("cart", JSON.stringify(existingCart));
+
+    setSelectedAttributes({});
+    setQuantity(1);
+
     alert("Product added to cart");
   };
 
@@ -101,36 +155,47 @@ const ProductDetail: React.FC = () => {
             {product.name}
           </span>
 
-          {selectedVariant && (
-            <p className="text-2xl font-semibold text-teal-600 mb-4">
-              ₹{selectedVariant.price.toLocaleString()}
-            </p>
-          )}
+          <p className="text-2xl font-semibold text-teal-600 mb-4">
+            ₹{totalPrice.toLocaleString()}
+          </p>
 
-          {/* VARIANTS */}
           <div className="mb-6">
             <span className="font-semibold mb-3 text-gray-700">
-              Select Variant
+              Select Options
             </span>
 
             <div className="flex flex-wrap gap-3">
-              {product.productAttributes.map((variant) => (
-                <button
-                  key={variant.id}
-                  onClick={() => setSelectedVariant(variant)}
-                  className={`px-4 py-2 border rounded transition ${
-                    selectedVariant?.id === variant.id
-                      ? "bg-teal-500 text-white border-teal-500"
-                      : "bg-white border-gray-300 hover:border-teal-400"
-                  }`}
-                >
-                  {variant.value} — ₹{variant.price.toLocaleString()}
-                </button>
+              {groupedAttributes.map((attr) => (
+                <div key={attr.attributeId} className="mb-6">
+                  <span className="font-semibold mb-2 text-gray-700 block">
+                    {attr.attributeName}
+                  </span>
+
+                  <div className="flex flex-wrap gap-3">
+                    {attr.values.map((val) => (
+                      <button
+                        key={val.id}
+                        onClick={() =>
+                          setSelectedAttributes((prev) => ({
+                            ...prev,
+                            [attr.attributeId]: val,
+                          }))
+                        }
+                        className={`px-4 py-2 border rounded transition ${
+                          selectedAttributes[attr.attributeId]?.id === val.id
+                            ? "bg-teal-500 text-white border-teal-500"
+                            : "bg-white border-gray-300 hover:border-teal-400"
+                        }`}
+                      >
+                        {val.value} — ₹{val.price.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
-          {/* QUANTITY */}
           <div className="flex items-center gap-4 mb-6">
             <span className="font-semibold text-gray-700">Quantity</span>
 
@@ -153,7 +218,6 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* ADD TO CART */}
           <button
             onClick={addToCart}
             className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition font-semibold"
@@ -161,7 +225,6 @@ const ProductDetail: React.FC = () => {
             Add to Cart
           </button>
 
-          {/* PRODUCT DESCRIPTION AFTER ADD TO CART */}
           <div className="mt-8">
             <span className="text-2xl font-bold mb-4 text-gray-800">
               Product Description

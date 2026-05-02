@@ -3,6 +3,10 @@ import { useParams, useNavigate } from "react-router";
 import multiapi from "../../api/multipart";
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
+import api from "../../api/axios";
+import MultiSelect from "../../components/form/MultiSelect";
+import Select from "../../components/form/Select";
+import Input from "../../components/form/input/InputField";
 
 interface Category {
   id: number;
@@ -11,13 +15,14 @@ interface Category {
 
 interface Attribute {
   id: number;
-  value: string;
-  categoryId: number;
+  name: string;
+  value: string[];
 }
 
-interface Variant {
+interface formData {
+  id: number;
   attributeId: number;
-  value: string;
+  value: string[];
   price: number;
   status: number;
 }
@@ -29,44 +34,35 @@ const ProductEditPage: React.FC = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [filteredAttributes, setFilteredAttributes] = useState<Attribute[]>([]);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [variants, setVariants] = useState<Variant[]>([]);
-  const [newVariant, setNewVariant] = useState<Variant>({
-    attributeId: 0,
-    value: "",
-    price: 0,
-    status: 1,
-  });
+  const [variants, setVariants] = useState<formData[]>([
+    {
+      id: Date.now(),
+      attributeId: 0,
+      value: [],
+      price: 0,
+      status: 1,
+    },
+  ]);
+
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const quillRef = useRef<ReactQuill>(null);
 
-  /* ---------------- FETCH DATA ---------------- */
-
   useEffect(() => {
     multiapi.get("admin/category").then((res) => setCategories(res.data.data));
-    multiapi
-      .get("/admin/attribute")
-      .then((res) => setAttributes(res.data.data));
+    fetchAttributes();
   }, []);
 
-  useEffect(() => {
-    if (categoryId) {
-      setFilteredAttributes(
-        attributes.filter((a) => a.categoryId === categoryId),
-      );
-    } else {
-      setFilteredAttributes([]);
-    }
-  }, [categoryId, attributes]);
-
-  /* ---------------- EDIT MODE LOAD ---------------- */
+  const fetchAttributes = async () => {
+    const res = await api.get("/admin/attribute");
+    setAttributes(res.data.data);
+  };
 
   useEffect(() => {
     if (!isEdit) return;
@@ -79,8 +75,9 @@ const ProductEditPage: React.FC = () => {
       setImagePreview(p.image);
       setVariants(
         p.productAttributes.map((v: any) => ({
+          id: Date.now() + Math.random(),
           attributeId: v.attributeId,
-          value: v.value,
+          value: Array.isArray(v.value) ? v.value : [v.value],
           price: v.price,
           status: v.status,
         })),
@@ -88,7 +85,43 @@ const ProductEditPage: React.FC = () => {
     });
   }, [id, isEdit]);
 
-  /* ---------------- HANDLERS ---------------- */
+  const handleVariantChange = (
+    index: number,
+    field: keyof formData,
+    value: number | string[],
+  ) => {
+    setVariants((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v)),
+    );
+  };
+
+  const addVariant = (index: number) => {
+    const selectedAttributeId = variants[index].attributeId;
+
+    setVariants((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        attributeId: selectedAttributeId,
+        value: [],
+        price: 0,
+        status: 1,
+      },
+    ]);
+  };
+
+  const addNewVariant = () => {
+    setVariants((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        attributeId: 0,
+        value: [],
+        price: 0,
+        status: 1,
+      },
+    ]);
+  };
 
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     setName(e.target.value);
@@ -106,29 +139,6 @@ const ProductEditPage: React.FC = () => {
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     if (errors.image) setErrors((prev) => ({ ...prev, image: "" }));
-  };
-
-  const handleNewVariantChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setNewVariant({
-      ...newVariant,
-      [name]:
-        name === "attributeId" || name === "price" || name === "status"
-          ? Number(value)
-          : value,
-    });
-  };
-
-  const addVariant = () => {
-    if (!newVariant.attributeId || !newVariant.value || !newVariant.price) {
-      alert("All variant fields required");
-      return;
-    }
-    setVariants([...variants, newVariant]);
-    setNewVariant({ attributeId: 0, value: "", price: 0, status: 1 });
-    if (errors.variants) setErrors((prev) => ({ ...prev, variants: "" }));
   };
 
   const removeVariant = (index: number) => {
@@ -149,11 +159,21 @@ const ProductEditPage: React.FC = () => {
     if (variants.length === 0)
       newErrors.variants = "At least one variant is required";
 
+    let hasValidVariants = true;
+    variants.forEach((v, i) => {
+      if (v.attributeId === 0 || v.price <= 0) {
+        hasValidVariants = false;
+        newErrors[`variant_${i}`] =
+          `Variant ${i + 1} is incomplete (missing attribute, value, or valid price)`;
+      }
+    });
+    if (!hasValidVariants)
+      newErrors.variants =
+        "All variants must be complete with attribute, value, and positive price";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-  /* ---------------- SUBMIT ---------------- */
 
   const handleSubmit = async () => {
     if (!validate()) return;
@@ -167,7 +187,6 @@ const ProductEditPage: React.FC = () => {
     formData.append("categoryId", String(categoryId));
     formData.append("variants", JSON.stringify(variants));
     if (imageFile) formData.append("image", imageFile);
-
     try {
       if (isEdit) {
         await multiapi.put(`/admin/product/${id}`, formData);
@@ -180,28 +199,12 @@ const ProductEditPage: React.FC = () => {
     }
   };
 
-  /* ---------------- UI ---------------- */
-
   return (
     <div className="container mx-auto p-4">
       <div className="mb-8 flex items-center justify-between">
         <span className="text-2xl font-bold">
           {isEdit ? "Edit Product" : "Create Product"}
         </span>
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate("/admin/product")}
-            className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="rounded-lg bg-blue-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
-          >
-            {isEdit ? "Update" : "Create"}
-          </button>
-        </div>
       </div>
 
       <div className="bg-white p-6 rounded shadow space-y-6">
@@ -259,7 +262,7 @@ const ProductEditPage: React.FC = () => {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1 mt-12">
             Category <span className="text-red-500">*</span>
           </label>
           <select
@@ -300,67 +303,102 @@ const ProductEditPage: React.FC = () => {
           )}
         </div>
 
-        {/* VARIANTS */}
         <div>
-          <h3 className="font-bold mb-2">
-            Variants <span className="text-red-500">*</span>
-          </h3>
+          <div>
+            <h3 className="font-bold mb-2">
+              Variants <span className="text-red-500">*</span>
+            </h3>
 
-          {variants.map((v, i) => (
-            <div key={i} className="mb-1 flex items-center">
-              <span>
-                {v.value} – ₹{v.price}
-              </span>
+            <div className="space-y-3">
+              {variants.map((variant, index) => {
+                const selectedAttribute = attributes.find(
+                  (attr) => attr.id === variant.attributeId,
+                );
+                return (
+                  <div key={variant.id} className="flex gap-3 items-start">
+                    <Select
+                      className="mt-1"
+                      options={attributes.map((a) => ({
+                        value: String(a.id),
+                        label: a.name,
+                      }))}
+                      onChange={(value) => {
+                        handleVariantChange(
+                          index,
+                          "attributeId",
+                          Number(value),
+                        );
+                      }}
+                    />
+
+                    <MultiSelect
+                      value={variant.value}
+                      options={
+                        selectedAttribute
+                          ? selectedAttribute.value.map((val) => ({
+                              value: val,
+                              text: val,
+                            }))
+                          : []
+                      }
+                      placeholder={
+                        selectedAttribute
+                          ? "Select Value"
+                          : "Select Attribute First"
+                      }
+                      disabled={!selectedAttribute}
+                      onChange={(selectValue) => {
+                        handleVariantChange(index, "value", selectValue);
+                      }}
+                    />
+
+                    {variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeVariant(index)}
+                        className="bg-red-500 text-white px-3 py-2 rounded mt-2"
+                      >
+                        🗑
+                      </button>
+                    )}
+
+                    {errors[`variant_${index}`] && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors[`variant_${index}`]}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+
               <button
-                onClick={() => removeVariant(i)}
-                className="text-red-500 ml-2"
+                type="button"
+                onClick={addNewVariant}
+                className="bg-blue-500 text-white px-3 py-2 rounded mt-4"
               >
-                Remove
+                Add New Variant
               </button>
             </div>
-          ))}
-
-          <select
-            name="attributeId"
-            value={newVariant.attributeId}
-            onChange={handleNewVariantChange}
-            className="w-full border p-2 mt-3 rounded"
-          >
-            <option value={0}>Select Attribute</option>
-            {filteredAttributes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.value}
-              </option>
-            ))}
-          </select>
-
-          <input
-            name="value"
-            placeholder="Value"
-            className="w-full border p-2 mt-2 rounded"
-            value={newVariant.value}
-            onChange={handleNewVariantChange}
-          />
-
-          <input
-            name="price"
-            type="number"
-            placeholder="Price"
-            className="w-full border p-2 mt-2 rounded"
-            value={newVariant.price}
-            onChange={handleNewVariantChange}
-          />
-
-          <button
-            onClick={addVariant}
-            className="bg-green-500 text-white px-4 py-2 mt-2 rounded"
-          >
-            Add Variant
-          </button>
-
+          </div>
           {errors.variants && (
             <p className="mt-1 text-sm text-red-600">{errors.variants}</p>
           )}
+        </div>
+        <div className="mb-8 flex items-center justify-end">
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate("/admin/product")}
+              className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              className="rounded-lg bg-blue-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-600"
+            >
+              {isEdit ? "Update" : "Create"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

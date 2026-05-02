@@ -8,9 +8,8 @@ interface Category {
 
 interface Attribute {
   id: number;
-  value: string;
-  categoryId: number;
-  // variantCount: number;  Mocked for frontend
+  name: string;
+  value: string[];
 }
 
 const AttributeManager: React.FC = () => {
@@ -18,9 +17,13 @@ const AttributeManager: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [currentAttribute, setCurrentAttribute] = useState<Partial<Attribute>>(
-    {},
-  );
+  const [currentAttribute, setCurrentAttribute] = useState<{
+    name?: string;
+    value: string[];
+  }>({
+    value: [],
+  });
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const fetchAttributes = async () => {
     try {
@@ -47,41 +50,60 @@ const AttributeManager: React.FC = () => {
 
   const openModal = (mode: "create" | "edit", attribute?: Attribute) => {
     setModalMode(mode);
-    setCurrentAttribute(attribute ?? {});
+
+    if (mode === "edit" && attribute) {
+      setEditingId(attribute.id);
+      setCurrentAttribute({
+        name: attribute.name,
+        value: attribute.value ?? [],
+      });
+    } else {
+      setEditingId(null);
+      setCurrentAttribute({
+        name: "",
+        value: [],
+      });
+    }
+
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setCurrentAttribute({});
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
+    setEditingId(null);
     setCurrentAttribute({
-      ...currentAttribute,
-      [name]: name === "categoryId" ? Number(value) : value,
+      name: "",
+      value: [],
     });
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+
+    setCurrentAttribute((prev) => ({
+      ...prev,
+      name: value,
+    }));
+  };
+
   const handleSubmit = async () => {
-    if (!currentAttribute.value || !currentAttribute.categoryId) {
-      alert("Value and Category are required");
+    if (!currentAttribute.name || currentAttribute.value.length === 0) {
+      alert("Name and at least one value are required");
       return;
     }
 
     try {
       if (modalMode === "create") {
         await api.post("/admin/attribute/create", {
+          name: currentAttribute.name,
           value: currentAttribute.value,
-          categoryId: currentAttribute.categoryId,
         });
       } else {
-        await api.put(`/admin/attribute/${currentAttribute.id}`, {
+        if (!editingId) return;
+
+        await api.put(`/admin/attribute/${editingId}`, {
+          name: currentAttribute.name,
           value: currentAttribute.value,
-          categoryId: currentAttribute.categoryId,
         });
       }
 
@@ -119,22 +141,40 @@ const AttributeManager: React.FC = () => {
         <thead>
           <tr className="bg-gray-100">
             <th className="py-2 px-4 border-b text-left">ID</th>
-            <th className="py-2 px-4 border-b text-left">Value</th>
-            <th className="py-2 px-4 border-b text-left">Category</th>
-            {/* <th className="py-2 px-4 border-b text-left">Number of Variants</th> */}
+            <th className="py-2 px-4 border-b text-left">Attribute Name</th>
+            <th className="py-2 px-4 border-b text-left">Values</th>
             <th className="py-2 px-4 border-b text-left">Actions</th>
           </tr>
         </thead>
+
         <tbody>
           {attributes.map((attribute) => (
             <tr key={attribute.id}>
               <td className="py-2 px-4 border-b">{attribute.id}</td>
-              <td className="py-2 px-4 border-b">{attribute.value}</td>
-              <td className="py-2 px-4 border-b">
-                {categories.find((c) => c.id === attribute.categoryId)
-                  ?.type || "Unknown"}
+
+              {/* ATTRIBUTE NAME */}
+              <td className="py-2 px-4 border-b font-medium">
+                {attribute.name}
               </td>
-              {/* <td className="py-2 px-4 border-b">{attribute.variantCount}</td> */}
+
+              {/* ATTRIBUTE VALUES */}
+              <td className="py-2 px-4 border-b">
+                {attribute.value.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {attribute.value.map((val, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-gray-200 text-sm px-2 py-1 rounded"
+                      >
+                        {val}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-gray-400">No values</span>
+                )}
+              </td>
+
               <td className="py-2 px-4 border-b">
                 <button
                   onClick={() => openModal("edit", attribute)}
@@ -154,7 +194,6 @@ const AttributeManager: React.FC = () => {
         </tbody>
       </table>
 
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-[#fafafa] bg-opacity-50">
           <div className="bg-white p-6 rounded shadow-lg w-96">
@@ -162,31 +201,66 @@ const AttributeManager: React.FC = () => {
               {modalMode === "create" ? "Create" : "Edit"} Attribute
             </span>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Value</label>
+              <label className="block text-sm font-medium mb-1">
+                Attribute Name
+              </label>
               <input
                 type="text"
-                name="value"
-                value={currentAttribute.value}
+                name="name"
+                value={currentAttribute.name || ""}
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 px-3 py-2 rounded"
               />
             </div>
+
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select
-                name="categoryId"
-                value={currentAttribute.categoryId || ""}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
+              <label className="block text-sm font-medium mb-1">Values</label>
+
+              {currentAttribute.value.map((val, index) => (
+                <div key={index} className="flex mb-2">
+                  <input
+                    type="text"
+                    value={val}
+                    onChange={(e) => {
+                      const newValues = [...currentAttribute.value];
+                      newValues[index] = e.target.value;
+                      setCurrentAttribute({
+                        ...currentAttribute,
+                        value: newValues,
+                      });
+                    }}
+                    className="flex-1 border border-gray-300 px-3 py-2 rounded"
+                  />
+                  <button
+                    onClick={() => {
+                      const newValues = currentAttribute.value.filter(
+                        (_, i) => i !== index,
+                      );
+                      setCurrentAttribute({
+                        ...currentAttribute,
+                        value: newValues,
+                      });
+                    }}
+                    className="ml-2 text-red-500"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+
+              <button
+                onClick={() =>
+                  setCurrentAttribute({
+                    ...currentAttribute,
+                    value: [...currentAttribute.value, ""],
+                  })
+                }
+                className="text-blue-500 text-sm mt-2"
               >
-                <option value="">Select Category</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.type}
-                  </option>
-                ))}
-              </select>
+                + Add value
+              </button>
             </div>
+
             <div className="flex justify-end">
               <button
                 onClick={closeModal}

@@ -6,13 +6,12 @@ interface CartItem {
   productId: number;
   productName: string;
   productImage: string;
-  variant: {
+  variants: {
     id: number;
-    attributeId: number;
     value: string;
     price: number;
     status: number;
-  };
+  }[];
   quantity: number;
 }
 
@@ -37,15 +36,18 @@ const CheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const storedCart = JSON.parse(
-      localStorage.getItem("cart") || "[]",
-    ) as CartItem[];
-    setCartItems(storedCart);
+    const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const validCartItems = storedCart
+      .filter((item: any) => item && Array.isArray(item.variants))
+      .map((item: any) => ({
+        ...item,
+        variants: item.variants || [],
+      })) as CartItem[];
+    setCartItems(validCartItems);
 
-    // Fetch product images
     const fetchImages = async () => {
       const uniqueProductIds = [
-        ...new Set(storedCart.map((item) => item.productId)),
+        ...new Set(validCartItems.map((item) => item.productId)),
       ];
       const imageMap: ProductImageMap = {};
       for (const id of uniqueProductIds) {
@@ -84,9 +86,13 @@ const CheckoutPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const getItemPrice = (item: CartItem) => {
+    return item.variants?.reduce((sum, v) => sum + v.price, 0) ?? 0;
+  };
+
   const getTotal = () => {
     return cartItems.reduce(
-      (total, item) => total + item.variant.price * item.quantity,
+      (total, item) => total + getItemPrice(item) * item.quantity,
       0,
     );
   };
@@ -113,13 +119,20 @@ const CheckoutPage: React.FC = () => {
           await api.post("/payment/order/create", {
             customer: formData,
             totalAmount,
-            cartItems,
+            cartItems: cartItems.map((item) => ({
+              productId: item.productId,
+              productName: item.productName,
+              productImage: item.productImage,
+              variants: item.variants,
+              price: getItemPrice(item),
+              quantity: item.quantity,
+            })),
             razorpayPaymentId: response.razorpay_payment_id,
             razorpayOrderId: response.razorpay_order_id,
             razorpaySignature: response.razorpay_signature,
           });
 
-          (navigate("/payment-success"));
+          navigate("/payment-success");
         },
         prefill: {
           name: formData.customerName,
@@ -159,7 +172,7 @@ const CheckoutPage: React.FC = () => {
       <span className="text-3xl font-bold mb-8 text-center">Checkout</span>
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left side: Form */}
+
           <div className="md:col-span-2 space-y-6 bg-white border border-gray-200 rounded-lg shadow-md p-6">
             <span className="text-2xl font-bold mb-4 text-gray-900">
               Shipping Information
@@ -273,38 +286,48 @@ const CheckoutPage: React.FC = () => {
             </select> */}
           </div>
 
-          {/* Right side: Order Summary */}
           <div className="bg-white border border-gray-200 rounded-lg shadow-md p-6 sticky top-4 h-fit">
             <span className="text-2xl font-bold mb-4 text-gray-900">
               Order Summary
             </span>
             <div className="space-y-4 mb-6">
-              {cartItems.map((item, index) => (
-                <div key={index} className="flex items-start gap-4">
-                  <img
-                    src={
-                      productImages[item.productId] ||
-                      "https://via.placeholder.com/64"
-                    }
-                    alt={item.productName}
-                    className="w-16 h-16 object-cover rounded-md"
-                  />
-                  <div>
-                    <span className="font-semibold text-gray-900">
-                      {item.productName}
-                    </span>
-                    <p className="text-sm text-gray-600">
-                      Variant: {item.variant.value}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Quantity: {item.quantity}
-                    </p>
-                    <p className="text-sm font-bold text-teal-600">
-                      ₹{(item.variant.price * item.quantity).toLocaleString()}
-                    </p>
+              {cartItems.map((item, index) => {
+                const itemPrice = getItemPrice(item);
+                return (
+                  <div key={index} className="flex items-start gap-4">
+                    <img
+                      src={
+                        productImages[item.productId] ||
+                        "https://via.placeholder.com/64"
+                      }
+                      alt={item.productName}
+                      className="w-16 h-16 object-cover rounded-md"
+                    />
+                    <div>
+                      <span className="font-semibold text-gray-900">
+                        {item.productName}
+                      </span>
+                      <p className="text-sm text-gray-600">
+                        Variants:{" "}
+                        {item.variants.length > 0
+                          ? item.variants
+                              .map(
+                                (v) =>
+                                  `${v.value}: ₹${v.price.toLocaleString()}`,
+                              )
+                              .join(", ")
+                          : "No variants"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Quantity: {item.quantity}
+                      </p>
+                      <p className="text-sm font-bold text-teal-600">
+                        ₹{(itemPrice * item.quantity).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="border-t pt-4">
               <div className="flex justify-between font-bold text-lg text-gray-900">
